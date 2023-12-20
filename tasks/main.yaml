@@ -1,0 +1,64 @@
+---
+
+- name: Test Facts
+  ansible.builtin.set_fact:
+    test_results: {}
+    tests_failed: 0
+    tests_passed: 0
+    project_root_dir: "{{ (playbook_dir | string) + '/..' }}"
+    scratchpad_dir: scratchpad
+  tags:
+    - always
+
+
+- name: Create Artifact dir
+  ansible.builtin.file:
+    path: "{{ project_root_dir | string }}/{{ scratchpad_dir }}/artifacts"
+    state: directory
+    mode: '755'
+  tags:
+    - functional
+    - unit
+
+
+- name: Setup Test Environment
+  ansible.builtin.include_tasks:
+    file: setup/main.yaml
+    apply:
+      tags:
+        - always
+  tags:
+    - never
+    - prepare
+
+
+- name: Load Artifacts
+  ansible.builtin.include_vars:
+    file: "{{ project_root_dir | string }}/{{ scratchpad_dir }}/test_artifacts.yaml"
+  tags:
+    - functional
+    - unit
+    - report
+
+
+- name: Unit Tests
+  ansible.builtin.include_tasks:
+    file: unit_test/main.yaml
+    apply:
+      tags:
+        - always
+  tags:
+    - never
+    - unit
+
+
+- name: Create Test Report
+  ansible.builtin.include_tasks:
+    file: report/test_report.yaml
+    apply:
+      tags:
+        - always
+  tags:
+    - functional
+    - unit
+    - report

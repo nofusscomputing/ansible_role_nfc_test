@@ -1,0 +1,14 @@
+---
+playbook_excludes:
+  - gitlab-ci
+  - docs
+  - cz.yaml
+  - .md
+  - .git
+  - .nfc_automation
+  - scratchpad
+  - test
+  - LICENSE
+  - .cfg
+  - website-template
+  - tasks/

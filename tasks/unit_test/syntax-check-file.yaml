@@ -1,0 +1,79 @@
+---
+
+- name: Create fact from Playbook - {{ test_playbook_file }}
+  ansible.builtin.set_fact:
+    playbook_contents: "{{ lookup('file', test_root_dir | string + '/playbooks/' + test_playbook_file | string) | from_yaml }}"
+    test_result: {}
+
+
+- name: Try catch
+  when: >
+    (
+      playbook_contents[0].name is defined
+        or
+      playbook_contents[0].hosts is defined
+    )
+      and
+    (
+      playbook_contents[0].tasks is defined
+        or
+      playbook_contents[0].pre_tasks is defined
+        or
+      playbook_contents[0].post_tasks is defined
+        or
+      playbook_contents[0].roles is defined
+    )
+      and
+    test_playbook_file != ''
+  block:
+
+
+    - name: Playbook Syntax check - {{ test_playbook_file}}
+      ansible.builtin.command:
+        cmd: ansible-playbook -i inventory/ playbooks/{{ test_playbook_file | string }} --syntax-check
+        chdir: "{{ test_root_dir | string }}"
+      changed_when: false
+      register: playbook_test_result
+
+
+  rescue:
+
+
+    - name: TRACE - {{ test_playbook_file }}
+      ansible.builtin.debug:
+        msg: Playbook '{{ test_playbook_file | string }}' failed test
+
+
+  always:
+
+
+    - name: Syntax Check Results - {{ test_playbook_file }}
+      ansible.builtin.set_fact:
+        syntax_check:
+          name: Syntax Check
+          date_time: "{{ ('%Y-%m-%dT%H:%M:%S %z' | strftime) | string }}"
+          passed: "{{ ((playbook_test_result.rc | int) == 0) | bool }}"
+          playbook: "{{ test_playbook_file | replace('/workdir/', '') | string }}"
+          stderr: "{{ playbook_test_result.stderr | string }}"
+          stdout: "{{ playbook_test_result | to_nice_json }}"
+          failure_message: >-
+            {%- for error in playbook_test_result.stderr_lines -%}
+            {%- if
+              'ERROR!' in error
+                or
+              'The error appears' in error
+            -%}{{  error + ' ' }} {%- endif -%}
+            {%- endfor %}
+      when: playbook_test_result != ''
+
+
+    - name: Test Results - {{ test_playbook_file }}
+      ansible.builtin.set_fact:
+        syntax_check: "{{ test_results.syntax_check | default([]) | list + [syntax_check] }}"
+
+
+    - name: Add to test Results - {{ test_playbook_file }}
+      ansible.builtin.set_fact:
+        test_results: "{{ test_results | combine({'syntax_check': syntax_check}) }}"
+        test_playbook_file: ''
+      when: playbook_test_result != ''

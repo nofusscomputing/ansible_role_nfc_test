@@ -1,0 +1,13 @@
+---
+
+- name: TEST Syntax Check
+  ansible.builtin.include_tasks:
+    file: syntax-check-file.yaml
+  loop: "{{ test_playbooks }}"
+  loop_control:
+    loop_var: test_playbook_file
+
+
+- name: Test Results
+  ansible.builtin.debug:
+    msg: "{{ test_results }}"

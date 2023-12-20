@@ -1,0 +1,30 @@
+---
+
+- name: Search
+  ansible.builtin.shell:
+    cmd: >
+      grep '\sname:' {{ test_root_dir | string + '/playbooks/' + playbook_file.path | string }} | grep -v -a '-';
+
+      grep 'role:' {{ test_root_dir | string + '/playbooks/' + playbook_file.path | string }} | grep -v -a '-';
+    executable: bash
+  changed_when: false
+  register: presence
+
+
+- name: DEBUG
+  ansible.builtin.debug:
+    msg: "{{ presence }}"
+
+
+- name: Add to Role list - {{ playbook_file.path }}
+  ansible.builtin.set_fact:
+    role_list: "{{ role_list | default([]) + [ ((result_line | trim) | split(' '))[1] | trim | replace('\"', '') | replace('{', '') ] }}"
+  loop: "{{ presence.stdout_lines }}"
+  loop_control:
+    loop_var: result_line
+  when: >
+    ((result_line | trim) | split(' '))[1] is defined
+      and
+    ((result_line | trim) | split(' '))[1] | trim | replace('\"', '') | replace('{', '') | default('empty') not in role_list | default([])
+      and
+    ((result_line | trim) | split(' '))[1] | trim | replace('\"', '') | replace('{', '') | default('empty') != ''
