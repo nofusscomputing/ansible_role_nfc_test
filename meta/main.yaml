@@ -1,0 +1,18 @@
+---
+galaxy_info:
+  role_name: nfc_test
+  author: No Fuss Computing
+  description: This role exists to test playbooks and inventory
+  license: MIT
+  min_ansible_version: 2.10
+  galaxy_tags:
+    - test
+    - unit_test
+    - functional_test
+  platforms:
+    - name: Debian
+      versions:
+        - all
+    - name: Ubuntu
+      versions:
+        - all

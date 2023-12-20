@@ -1,0 +1,39 @@
+---
+
+- name: Try Catch
+  block:
+
+    - name: Exclude items check - {{ structure_object.path }}
+      ansible.builtin.assert:
+        that:
+          - item not in structure_object.path
+        success_msg: Is a playbook
+        fail_msg: Test determined not a playbook
+      loop: "{{ playbook_excludes }}"
+
+
+    - name: Re-Create Playbook Directory Structure in Scratch Pad - {{ structure_object.path }}
+      ansible.builtin.file:
+        path: "{{ test_root_dir }}/playbooks/{{ structure_object.path }}"
+        state: directory
+        mode: '0775'
+
+      when: >
+        structure_object.state == 'directory'
+
+
+    - name: Playbook File Checks - {{ structure_object.path }}
+      ansible.builtin.include_tasks:
+        file: is_playbook.yaml
+      when: >
+        structure_object.state == 'file'
+
+      vars:
+        playbook_file: "{{ structure_object }}"
+
+
+  rescue:
+
+    - name: TRACE Structure
+      ansible.builtin.debug:
+        msg: Structure carry on

@@ -1,0 +1,23 @@
+---
+
+- name: Playbooks - {{ playbook_file.path }}
+  ansible.builtin.set_fact:
+    test_playbooks: "{{ (test_playbooks | default([])) + [playbook_file.path] }}"
+  no_log: true
+  when: >
+    '.yaml' in playbook_file.path
+      or
+    '.yml' in playbook_file.path
+
+
+- name: Copy Playbook to scratch pad - {{ playbook_file.path }}
+  ansible.builtin.copy:
+    src: "{{ project_root_dir }}/{{ playbook_file.path }}"
+    dest: "{{ test_root_dir | string }}/playbooks/{{ playbook_file.path }}"
+    mode: '0744'
+
+
+- name: Search for Role Names - {{ playbook_file.path }}
+  ansible.builtin.include_tasks:
+    file: role_search.yaml
+  no_log: true

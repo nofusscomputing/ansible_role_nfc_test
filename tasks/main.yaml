@@ -1,0 +1,22 @@
+---
+
+- name: Test Facts
+  ansible.builtin.set_fact:
+    test_results: {}
+    tests_failed: 0
+    tests_passed: 0
+    project_root_dir: "{{ (playbook_dir | string) + '/..' }}"
+    scratchpad_dir: scratchpad
+  tags:
+    - always
+
+
+- name: Setup Test Environment
+  ansible.builtin.include_tasks:
+    file: setup/main.yaml
+    apply:
+      tags:
+        - always
+  tags:
+    - never
+    - prepare

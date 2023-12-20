@@ -1,0 +1,153 @@
+---
+
+- name: Additional Test Facts
+  ansible.builtin.set_fact:
+    test_root_dir: "{{ project_root_dir }}/{{ scratchpad_dir }}"
+
+
+- name: Create Test Environment Directories
+  ansible.builtin.file:
+    name: "{{ item }}"
+    state: directory
+    mode: '744'
+  loop: "{{ scratchpad_dirs }}"
+  vars:
+    scratchpad_dirs:
+      - "{{ project_root_dir }}"
+      - "{{ test_root_dir }}/files"
+      - "{{ test_root_dir }}/inventory"
+      - "{{ test_root_dir }}/playbooks"
+      - "{{ test_root_dir }}/roles"
+      - "{{ test_root_dir }}/templates"
+
+
+- name: Structure
+  ansible.builtin.include_tasks:
+    file: setup/structure.yaml
+  with_filetree: "{{ project_root_dir }}"
+  loop_control:
+    loop_var: structure_object
+
+
+- name: Copy Inventory to scratch pad
+  ansible.builtin.copy:
+    src: "{{ project_root_dir }}/test/mock_inventory.yaml"
+    dest: "{{ test_root_dir | string }}/inventory/hosts.yaml"
+    mode: '0744'
+
+
+- name: Add mock roles Dirs
+  ansible.builtin.file:
+    path: "{{ test_root_dir | string }}/roles/{{ item }}/tasks"
+    state: directory
+    mode: '0775'
+  loop: "{{ role_list }}"
+
+
+- name: Create mock_role Task file
+  ansible.builtin.copy:
+    content: |
+      ---
+
+      - name: TRACE - {{ '{{' }} ansible_role_name }}
+        ansible.builtin.set_fact:
+          nfc_test_roles: "{{ '{{' }} nfc_test_roles | default([]) + [{
+              'play_name': ansible_play_name | string,
+              'role_name': ansible_role_name | string
+            }] }}"
+
+
+      - name: Save Artifacts
+        ansible.builtin.include_tasks:
+          file: save_artifacts.yaml
+        vars:
+          test_inventory_hostname: "{{ '{{' }} inventory_hostname }}"
+
+
+      - name: TRACE Mock Role Task - {{ item }}
+        ansible.builtin.assert:
+          that:
+            - test_mock_role_pass | default(true) | bool
+          msg: "Mock role failed as variable 'test_mock_role_pass' = 'fail'"
+
+    dest: "{{ test_root_dir | string }}/roles/{{ item }}/tasks/main.yaml"
+    mode: '0744'
+  loop: "{{ role_list }}"
+
+
+- name: Create mock_role Task file save
+  ansible.builtin.copy:
+    content: |
+      ---
+
+      - name: Create host artifact file
+        ansible.builtin.file:
+          path: "{{ project_root_dir | string }}/{{ scratchpad_dir }}/artifacts/{{ '{{' }}  inventory_hostname }}.json"
+          access_time: preserve
+          modification_time: preserve
+          state: touch
+        register: file_created
+
+
+      - name: Load Artifacts
+        ansible.builtin.include_vars:
+          file: "{{ project_root_dir | string }}/{{ scratchpad_dir }}/artifacts/{{ '{{' }} inventory_hostname }}.json"
+        when: not file_created.changed | bool
+
+
+      - name: Record play Host Details
+        ansible.builtin.set_fact:
+          nfc_test_current_play: |
+            {
+              "{{ '{{' }} test_play_filename | replace('.yaml', '') | replace('/', '_') | lower }}": {{ '{{' }} nfc_test_plays[test_play_filename | replace('.yaml', '') | replace('/', '_') | lower]  | default({}) | combine({ 
+                'hosts': nfc_test_plays[test_play_filename | replace('.yaml', '') | replace('/', '_') | lower]['hosts'] | default([]) + [inventory_hostname],
+                'roles': nfc_test_plays[test_play_filename | replace('.yaml', '') | replace('/', '_') | lower]['roles'] | default([]) + [ansible_role_name]
+
+              }) }}
+            }
+        # when: inventory_hostname not in nfc_test_plays[ansible_play_name | string | replace(' ','_') | lower] | default([])
+
+      - name: Record Details
+        ansible.builtin.set_fact:
+          nfc_test_play: "{{ '{{' }} nfc_test_plays | default({}) | combine(nfc_test_current_play | from_yaml) }}"
+        # when: inventory_hostname not in nfc_test_plays[ansible_play_name | string | replace(' ','_') | lower] | default([])
+
+
+      - name: Create mock_role Task file
+        ansible.builtin.copy:
+          content: |
+            {
+              "nfc_test_plays": {{ '{{' }} nfc_test_play | to_nice_json }}
+            }
+          dest: "{{ test_root_dir | string }}/artifacts/{{ '{{' }} inventory_hostname }}.json"
+          mode: '0744'
+
+    dest: "{{ test_root_dir | string }}/roles/{{ item }}/tasks/save_artifacts.yaml"
+    mode: '0744'
+  loop: "{{ role_list }}"
+
+
+- name: Create ansible.cfg
+  ansible.builtin.copy:
+    content: |
+      [defaults]
+      roles_path={{ test_root_dir | string }}/roles
+      log_path={{ test_root_dir | string }}/test_ansible.log
+
+    dest: "{{ test_root_dir | string }}/ansible.cfg"
+    mode: '0744'
+  loop: "{{ role_list }}"
+
+
+- name: Create Artifacts File
+  ansible.builtin.copy:
+    content: |
+      role_list: {{ role_list }}
+      test_playbooks: {{ test_playbooks }}
+      test_root_dir: {{ test_root_dir }}
+    dest: "{{ test_root_dir | string }}/test_artifacts.yaml"
+    mode: '755'
+
+
+
+
