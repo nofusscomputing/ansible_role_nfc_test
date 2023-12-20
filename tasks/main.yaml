@@ -50,3 +50,15 @@
   tags:
     - never
     - unit
+
+
+- name: Create Test Report
+  ansible.builtin.include_tasks:
+    file: report/test_report.yaml
+    apply:
+      tags:
+        - always
+  tags:
+    - functional
+    - unit
+    - report

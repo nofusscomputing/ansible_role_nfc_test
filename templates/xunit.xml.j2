@@ -1,0 +1,29 @@
+<testsuites id="Ansible Role nfc_test" name="Test" tests="{{ tests_failed | int  + tests_passed | int }}" errors="0" time="{{ ('%Y-%m-%dT%H:%M:%S %z' | strftime) | string }}">
+
+    {% for test_suite in test_results | dict2items -%}
+    <testsuite id="playbooks" name="{{ test_suite.key }}" tests="{{ test_suite.value | list | length | int }}" failures="{{ tests_failed | int }}" time="{{ ('%Y-%m-%dT%H:%M:%S %z' | strftime) | string }}">
+        
+        {% for test in test_suite.value -%}
+
+        <testcase classname="{{ test_suite.key }}" file="{{ test.playbook | string }}" line="0" name="{{ test.playbook | string }}" time="0" timestamp="{{ test.date_time | string }}">
+
+            {% if not test.passed -%}
+            <failure message="Failed Syntax Check" type="validation">
+                <![CDATA[ {{ test.failure_message | string }} ]]>
+            </failure>
+            {% endif %}
+
+            <system-out>
+                <![CDATA[ {{ test.stdout | string }} ]]>
+            </system-out>
+            <system-err>
+                <![CDATA[ {{ test.stderr | string }} ]]>
+            </system-err>
+        </testcase>
+
+        {%- endfor %}
+
+    </testsuite>
+    {% endfor %}
+
+</testsuites>

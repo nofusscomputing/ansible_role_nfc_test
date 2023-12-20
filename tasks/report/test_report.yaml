@@ -1,0 +1,23 @@
+---
+- name: Count Failed Tests
+  ansible.builtin.include_tasks:
+    file: report/failed_tests.yaml 
+  loop: "{{ test_results | dict2items }}"
+  loop_control:
+    loop_var: test_suite_results
+
+
+- name: Count passed Tests
+  ansible.builtin.include_tasks:
+    file: report/passed_tests.yaml 
+  loop: "{{ test_results | dict2items }}"
+  loop_control:
+    loop_var: test_suite_results
+
+
+- name: Create XUnit Test Report
+  ansible.builtin.template:
+    src: xunit.xml.j2
+    dest: "{{ (test_root_dir | string) + '/Unit_Test.junit.xml' }}"
+    mode: '755'
+

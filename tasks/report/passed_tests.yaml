@@ -1,0 +1,7 @@
+---
+
+- name: Count passed Tests
+  ansible.builtin.set_fact:
+    tests_passed: "{{ (tests_passed | int) + 1 }}"
+  loop: "{{ test_suite_results.value }}"
+  when: item.passed
