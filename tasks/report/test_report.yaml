@@ -1,4 +1,28 @@
 ---
+- name: sdasdsadsa
+  ansible.builtin.set_fact:
+    nfc_test_plays: {}
+
+- name: Merge Artifacts
+  ansible.builtin.include_vars:
+    # name: combined
+    file: "{{ (test_root_dir | string) }}/artifacts/{{ item.path }}"
+    hash_behaviour: merge
+    # ignore_unknown_extensions: true
+    # extensions:
+    #   - yaml
+  with_filetree: "{{ (test_root_dir | string) }}/artifacts/"
+  delegate_facts: true
+  delegate_to: localhost
+  run_once: true
+
+
+- name: TRACE - Combined
+  ansible.builtin.debug:
+    msg: "{{ nfc_test_plays }}"
+  delegate_to: localhost
+  run_once: true
+
 - name: Count Failed Tests
   ansible.builtin.include_tasks:
     file: report/failed_tests.yaml 
@@ -21,3 +45,7 @@
     dest: "{{ (test_root_dir | string) + '/Unit_Test.junit.xml' }}"
     mode: '755'
 
+
+# - name: B
+#   ansible.builtin.file:
+#     con
