@@ -52,6 +52,17 @@
     - unit
 
 
+- name: Functional Tests
+  ansible.builtin.include_tasks:
+    file: functional_test/main.yaml
+    apply:
+      tags:
+        - always
+  tags:
+    - never
+    - functional
+
+
 - name: Create Test Report
   ansible.builtin.include_tasks:
     file: report/test_report.yaml

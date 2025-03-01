@@ -1,0 +1,33 @@
+---
+
+
+# - name: Run playbooks
+#   ansible.builtin.command:
+#     argv:
+#       - ansible-playbook
+#       - -i inventory/
+#       - playbooks/all.yaml
+#       - --extra-vars "ansible_connection=local"
+#       - -vvv
+#     chdir: "{{ test_root_dir }}"
+#   changed_when: false
+
+- name: Run playbooks
+  ansible.builtin.command:
+    cmd: ansible-playbook -i inventory/ playbooks/{{ item }} --extra-vars "ansible_connection=local" --extra-vars "test_play_filename={{ item }}"
+    chdir: "{{ test_root_dir }}"
+  changed_when: false
+  register: nfc_test_play_run
+  loop: "{{ test_playbooks }}"
+
+
+# - name: Parse Line
+#   ansible.builtin.set_fact:
+#     previous_line: |-
+#       {%- if current_line is defined -%}
+#         {{ current_line }}
+#       {%- else -%}
+#       ''
+#       {%- endif %}
+#     current_line: "{{ item }}"
+#   loop: "{{ nfc_test_play_run.stdout_lines }}"
